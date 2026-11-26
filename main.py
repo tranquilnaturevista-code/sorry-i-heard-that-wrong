@@ -34,6 +34,14 @@ def gate_problems(text):
         )
     if "\n" in text or "\r" in text:
         problems.append("entry must be a single line")
+    if text != text.strip():
+        problems.append("entry has leading or trailing whitespace")
+    for char in text:
+        if ord(char) < 0x20 and char not in ("\t",):
+            problems.append(
+                "entry holds a control character (U+%04X)" % ord(char)
+            )
+            break
     return problems
 
 
@@ -71,5 +79,36 @@ def write_entry():
     return 0
 
 
+def main(argv=None):
+    """Entry point: validate the gate, then write the apology.
+
+    `--check-only` runs the gate (on the entry and, when a file
+    already exists, on what's on disk) without writing anything,
+    so a bad line fails fast before any output is produced.
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Write the 'Sorry, I Heard That Wrong' entry."
+    )
+    parser.add_argument(
+        "--check-only",
+        action="store_true",
+        help="only run the gate, do not write entry.txt",
+    )
+    args = parser.parse_args(argv)
+
+    problems = gate_problems(ENTRY)
+    if problems:
+        return report(problems)
+    if args.check_only:
+        print(
+            "Gate passed: %d characters (%d bytes)"
+            % (len(ENTRY), len(ENTRY.encode("utf-8")))
+        )
+        return 0
+    return write_entry()
+
+
 if __name__ == "__main__":
-    sys.exit(write_entry())
+    sys.exit(main())
